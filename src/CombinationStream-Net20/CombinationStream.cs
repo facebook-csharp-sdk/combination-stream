@@ -3,17 +3,18 @@ namespace CombinationStream
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Threading;
 
-    // todo: implement BeginRead and EndRead.
-    internal class CombinationStream : System.IO.Stream
+    internal class CombinationStream : Stream
     {
-        private readonly IList<System.IO.Stream> _streams;
+        private readonly IList<Stream> _streams;
         private int _currentStreamIndex;
-        private System.IO.Stream _currentStream;
+        private Stream _currentStream;
         private long _length = -1;
         private long _postion;
 
-        public CombinationStream(IList<System.IO.Stream> streams)
+        public CombinationStream(IList<Stream> streams)
         {
             if (streams == null)
                 throw new ArgumentNullException("streams");
@@ -66,6 +67,88 @@ namespace CombinationStream
             return result;
         }
 
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        {
+            CombinationStreamAsyncResult asyncResult = new CombinationStreamAsyncResult(state);
+            if (count > 0)
+            {
+                int buffPostion = offset;
+
+                AsyncCallback rc = null;
+                rc = readresult =>
+                         {
+                             try
+                             {
+                                 int bytesRead = _currentStream.EndRead(readresult);
+                                 asyncResult.BytesRead += bytesRead;
+                                 buffPostion += bytesRead;
+                                 _postion += bytesRead;
+
+                                 if (bytesRead <= count)
+                                     count -= bytesRead;
+
+                                 if (count > 0)
+                                 {
+                                     if (_currentStreamIndex >= _streams.Count)
+                                     {
+                                         // done
+                                         asyncResult.CompletedSynchronously = false;
+                                         asyncResult.SetAsyncWaitHandle();
+                                         asyncResult.IsCompleted = true;
+                                         callback(asyncResult);
+                                     }
+                                     else
+                                     {
+                                         _currentStream = _streams[_currentStreamIndex++];
+                                         _currentStream.BeginRead(buffer, buffPostion, count, rc, readresult.AsyncState);
+                                     }
+                                 }
+                                 else
+                                 {
+                                     // done
+                                     asyncResult.CompletedSynchronously = false;
+                                     asyncResult.SetAsyncWaitHandle();
+                                     asyncResult.IsCompleted = true;
+                                     callback(asyncResult);
+                                 }
+                             }
+                             catch (Exception ex)
+                             {
+                                 // done
+                                 asyncResult.Exception = ex;
+                                 asyncResult.CompletedSynchronously = false;
+                                 asyncResult.SetAsyncWaitHandle();
+                                 asyncResult.IsCompleted = true;
+                                 callback(asyncResult);
+                             }
+                         };
+                _currentStream.BeginRead(buffer, buffPostion, count, rc, state);
+            }
+            else
+            {
+                // done
+                asyncResult.CompletedSynchronously = true;
+                asyncResult.SetAsyncWaitHandle();
+                asyncResult.IsCompleted = true;
+                callback(asyncResult);
+            }
+
+            return asyncResult;
+        }
+
+        public override int EndRead(IAsyncResult asyncResult)
+        {
+            // todo: check if it is of same reference
+            asyncResult.AsyncWaitHandle.WaitOne();
+            var ar = (CombinationStreamAsyncResult)asyncResult;
+            if (ar.Exception != null)
+            {
+                throw ar.Exception;
+            }
+
+            return ar.BytesRead;
+        }
+
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new InvalidOperationException("Stream is not writable");
@@ -105,6 +188,41 @@ namespace CombinationStream
         {
             get { return _postion; }
             set { throw new NotImplementedException(); }
+        }
+
+        internal class CombinationStreamAsyncResult : IAsyncResult
+        {
+            private readonly object _asyncState;
+
+            public CombinationStreamAsyncResult(object asyncState)
+            {
+                _asyncState = asyncState;
+                _manualResetEvent = new ManualResetEvent(false);
+            }
+
+            public bool IsCompleted { get; internal set; }
+
+            public WaitHandle AsyncWaitHandle
+            {
+                get { return _manualResetEvent; }
+            }
+
+            public object AsyncState
+            {
+                get { return _asyncState; }
+            }
+
+            public bool CompletedSynchronously { get; internal set; }
+
+            public Exception Exception { get; internal set; }
+
+            internal void SetAsyncWaitHandle()
+            {
+                _manualResetEvent.Set();
+            }
+
+            private readonly ManualResetEvent _manualResetEvent;
+            public int BytesRead;
         }
     }
 }
