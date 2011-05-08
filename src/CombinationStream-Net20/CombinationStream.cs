@@ -24,6 +24,8 @@ namespace CombinationStream
                 _currentStream = streams[_currentStreamIndex++];
         }
 
+        public IList<Stream> InternalStreams { get { return _streams; } }
+
         public override void Flush()
         {
             if (_currentStream != null)
