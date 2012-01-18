@@ -1,0 +1,18 @@
+<?xml version='1.0'?>
+<package xmlns='http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd'>
+    <metadata>
+        <id>CombinationStream</id>
+        <title/>
+        <version>$version$</version>
+        <authors>Prabir Shrestha</authors>
+        <description>Single stream representing multiple streams</description>
+        <language>en-US</language>
+        <licenseUrl>https://github.com/prabirshrestha/CombinationStream/blob/master/LICENSE</licenseUrl>
+        <projectUrl>https://github.com/prabirshrestha/CombinationStream/</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <tags>stream web REST HTTP API wrapper</tags>
+    </metadata>
+	<files>
+		<file src="CombinationStream-Net20\CombinationStream.cs" target = "content\CombinationStream.cs" />
+	</files>
+</package>

@@ -35,3 +35,4 @@ lint.db
 Thumbs.db
 !libs/*/[Bb]in/
 packages/
+dist/
