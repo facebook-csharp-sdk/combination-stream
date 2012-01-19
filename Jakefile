@@ -5,11 +5,13 @@ var helper = {},
     version = fs.readFileSync(path.join(root, 'VERSION'), 'utf-8'),
     nugetVersion = '1.6.0';
 
-directory('dist');
+task('default', ['dist']);
+
+directory('dist/');
 
 desc('build')
 task('build', function () {
-    helper.exec(helper.getDotNetVersionPath('net40', 'x86') + 'MSBuild.exe', [
+    helper.exec(helper.getDotNetVersionPath('net4.0', 'x86') + 'MSBuild.exe', [
 		path.join(root, 'src/CombinationStream-Net20.sln'),
 		'/p:Configuration=Release'
 	],
@@ -21,7 +23,7 @@ task('build', function () {
 
 desc('clean')
 task('clean', function () {
-    helper.exec(helper.getDotNetVersionPath('net35', 'x86') + 'MSBuild.exe', [
+    helper.exec(helper.getDotNetVersionPath('net4.0', 'x86') + 'MSBuild.exe', [
 		path.join(root, 'src/CombinationStream-Net20.sln'),
 		'/p:Configuration=Release',
 		'/target:Clean'
@@ -35,7 +37,7 @@ task('clean', function () {
 namespace('nuget', function () {
 
     desc('create nuget package');
-    task('pack', ['dist'], function () {
+    task('pack', ['dist/'], function () {
         helper.exec(path.join(root, 'src/packages/NuGet.CommandLine.' + nugetVersion, 'tools/NuGet.exe'), [
             'pack',
             path.join(root, 'src/CombinationStream.nuspec'),
@@ -50,7 +52,8 @@ namespace('nuget', function () {
     }, { async: true });
 });
 
-task('default', ['build', 'nuget:pack']);
+desc('create distribution package');
+task('dist', ['build', 'nuget:pack']);
 
 /************** HELPER METHODS **************************************************/
 
@@ -58,14 +61,29 @@ task('default', ['build', 'nuget:pack']);
     var spawn = require('child_process').spawn;
 
     helper.exec = function (cmd, opts, callback) {
+		console.log(cmd);
         var command = spawn(cmd, opts, { customFds: [0, 1, 2] });
         command.on('exit', function (code) { callback(code); });
     };
 
     helper.getWinDir = function () {
         var winDir = process.env.WINDIR;
-        return winDir.substr(-1) === '/' ? winDir : (winDir + '/'); // append / if absent
+        return path.normalize((winDir.substr(-1) === '/' || winDir.substr(-1) === '\\') ? winDir : (winDir + '/')); // append / if absent
     };
+
+	helper.dotNetVersionMapper = {
+		'processor': {
+			'x86': 'Framework',
+			'x64': 'Framework64'
+		},
+		'version': {
+			'net1.0': '1.0.3705',
+			'net1.1': '1.1.4322',
+			'net2.0': '2.0.50727',
+			'net3.5': '3.5',
+			'net4.0': '4.0.30319'
+		}	
+	};
 
     helper.getDotNetVersionPath = function (version, processor) {
 
@@ -73,24 +91,19 @@ task('default', ['build', 'nuget:pack']);
         // http://docs.nuget.org/docs/creating-packages/creating-and-publishing-a-package#Grouping_Assemblies_by_Framework_Version
 
         // make it processor instead of bit, just incase MS releases FrameworkARM ;)
-        // TODO: CACHE
-
-        var netFramework = helper.getWinDir() + "Microsoft.Net/" + (processor == 'x86' ? 'Framework' : 'Framework64') + '/';
-        switch (version) {
-            case 'net10':
-                return netFramework + 'v1.0.3705/';
-            case 'net11':
-                return netFramework + 'v1.1.4322/';
-            case 'net20':
-                return netFramework + 'v2.0.50727/';
-            case 'net35':
-                return netFramework + 'v3.5/';
-            case 'net40':
-                return netFramework + 'v4.0.30319/';
-            default:
-                fail('specified .NET framework is not supported : ' + version + '(' + processor + ')');
-                break;
-        }
+        
+		var actualProcessor = helper.dotNetVersionMapper['processor'][processor];
+		var actualVersion = helper.dotNetVersionMapper['version'][version];
+		if(typeof actualProcessor === 'undefined' || typeof actualVersion === 'undefined') {
+			fail('specified .NET framework is not supported : ' + version + '(' + processor + ')');
+			return;
+		}
+		
+		var netFrameworkPath= helper.getWinDir() + 
+									'Microsoft.Net\\' +
+									helper.dotNetVersionMapper['processor'][processor] + '\\v' +
+									helper.dotNetVersionMapper['version'][version] + '\\';
+		return netFrameworkPath;
     };
 
 })();
