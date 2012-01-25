@@ -9,17 +9,24 @@ namespace CombinationStream
     internal class CombinationStream : Stream
     {
         private readonly IList<Stream> _streams;
+        private readonly IList<int> _streamsToDispose;
         private int _currentStreamIndex;
         private Stream _currentStream;
         private long _length = -1;
         private long _postion;
 
         public CombinationStream(IList<Stream> streams)
+            : this(streams, null)
+        {
+        }
+
+        public CombinationStream(IList<Stream> streams, IList<int> streamsToDispose)
         {
             if (streams == null)
                 throw new ArgumentNullException("streams");
 
             _streams = streams;
+            _streamsToDispose = streamsToDispose;
             if (streams.Count > 0)
                 _currentStream = streams[_currentStreamIndex++];
         }
@@ -32,7 +39,7 @@ namespace CombinationStream
                 _currentStream.Flush();
         }
 
-        public override long Seek(long offset, System.IO.SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new InvalidOperationException("Stream is not seekable.");
         }
@@ -154,6 +161,22 @@ namespace CombinationStream
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new InvalidOperationException("Stream is not writable");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (_streamsToDispose == null)
+            {
+                foreach (var stream in InternalStreams)
+                    stream.Dispose();
+            }
+            else
+            {
+                int i;
+                for (i = 0; i < InternalStreams.Count; i++)
+                    InternalStreams[i].Dispose();
+            }
         }
 
         public override bool CanRead
