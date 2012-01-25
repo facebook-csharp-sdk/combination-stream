@@ -13,6 +13,6 @@
         <tags>stream web REST HTTP API wrapper</tags>
     </metadata>
 	<files>
-		<file src="CombinationStream-Net20\CombinationStream.cs" target = "content\CombinationStream.cs" />
+		<file src="..\Working\CombinationStream.cs.pp" target = "content\CombinationStream.cs.pp" />
 	</files>
 </package>

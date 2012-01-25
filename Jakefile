@@ -8,6 +8,7 @@ var helper = {},
 task('default', ['dist']);
 
 directory('dist/');
+directory('working/');
 
 desc('build')
 task('build', function () {
@@ -37,7 +38,11 @@ task('clean', function () {
 namespace('nuget', function () {
 
     desc('create nuget package');
-    task('pack', ['dist/'], function () {
+    task('pack', ['working/', 'dist/'], function () {
+		var file = fs
+					.readFileSync(path.join(root, 'src/CombinationStream-Net20/CombinationStream.cs'), 'utf-8')
+					.replace('namespace CombinationStream', 'namespace $rootnamespace$');
+		fs.writeFileSync(path.join(root, 'working/CombinationStream.cs.pp'), file);
         helper.exec(path.join(root, 'src/packages/NuGet.CommandLine.' + nugetVersion, 'tools/NuGet.exe'), [
             'pack',
             path.join(root, 'src/CombinationStream.nuspec'),
