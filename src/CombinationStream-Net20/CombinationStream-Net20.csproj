@@ -8,7 +8,7 @@
     <ProjectGuid>{9FDB2194-6272-4E71-91A2-32E8B6F9F98E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CombinationStream_Net20</RootNamespace>
+    <RootNamespace>CombinationStream</RootNamespace>
     <AssemblyName>CombinationStream-Net20</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
