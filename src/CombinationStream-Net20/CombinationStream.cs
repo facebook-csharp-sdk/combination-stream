@@ -101,6 +101,11 @@ namespace CombinationStream
 
 #if NETFX_CORE
 
+        public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Stream is not writable");
+        }
+
 #else
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
         {
