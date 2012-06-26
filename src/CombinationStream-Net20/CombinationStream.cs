@@ -108,7 +108,7 @@ namespace CombinationStream
 
             while (count > 0)
             {
-                int bytesRead = await _currentStream.ReadAsync(buffer, buffPostion, count);
+                int bytesRead = await _currentStream.ReadAsync(buffer, buffPostion, count, cancellationToken);
                 result += bytesRead;
                 buffPostion += bytesRead;
                 _postion += bytesRead;
