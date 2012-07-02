@@ -43,6 +43,8 @@ namespace('nuget', function () {
 					.readFileSync(path.join(root, 'src/CombinationStream-Net20/CombinationStream.cs'), 'utf-8')
 					.replace('namespace CombinationStream', 'namespace $rootnamespace$');
 		fs.writeFileSync(path.join(root, 'working/CombinationStream.cs.pp'), file);
+		file = fs.readFileSync(path.join(root, 'README.md'), 'utf-8');
+		fs.writeFileSync(path.join(root, 'working/readme.txt'), file);
         helper.exec(path.join(root, 'src/packages/NuGet.CommandLine.' + nugetVersion, 'tools/NuGet.exe'), [
             'pack',
             path.join(root, 'src/CombinationStream.nuspec'),

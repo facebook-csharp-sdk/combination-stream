@@ -14,5 +14,6 @@
     </metadata>
 	<files>
 		<file src="..\Working\CombinationStream.cs.pp" target = "content\CombinationStream.cs.pp" />
+                <file src="..\Working\readme.txt" target = "readme.txt" />
 	</files>
 </package>

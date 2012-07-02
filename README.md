@@ -63,9 +63,3 @@ Stream combinationStream = new CombinationStream(streams, new [] { 0, 2 });
 combinationStream.Dispose(); // disposes only stream at index 0 and 2.
 stream1.Dispose(); // need to explicitly dispose stream at index 1
 ```
-
-
-
-
-
-
