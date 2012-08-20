@@ -18,7 +18,7 @@ run the following command.*
     
 ## Supported Platforms
 * .NET 2.0+ (client profiles also supported)
-* Windows 8 Metro Style Applications - WinRT (Windows 8 Release Preview)
+* Windows 8 Metro Style Applications - WinRT (Windows 8)
 * Silverlight 4+
 * Windows Phone 7.0+
 * Portable Class Library
