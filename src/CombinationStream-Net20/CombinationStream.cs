@@ -33,6 +33,7 @@ namespace CombinationStream
     {
         private readonly IList<Stream> _streams;
         private readonly IList<int> _streamsToDispose;
+        private readonly IList<long> _streamsStartPos;
         private int _currentStreamIndex;
         private Stream _currentStream;
         private long _length = -1;
@@ -52,6 +53,14 @@ namespace CombinationStream
             _streamsToDispose = streamsToDispose;
             if (streams.Count > 0)
                 _currentStream = streams[_currentStreamIndex++];
+
+            _streamsStartPos = new List<long>(streams.Count);
+            long pos = 0;
+            foreach (var strm in streams)
+            {
+                _streamsStartPos.Add(pos);
+                pos += strm.Length;
+            }
         }
 
         public IList<Stream> InternalStreams { get { return _streams; } }
@@ -64,7 +73,35 @@ namespace CombinationStream
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new InvalidOperationException("Stream is not seekable.");
+            long pos = 0;
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    pos = offset;
+                    break;
+                case SeekOrigin.Current:
+                    pos = this.Position + offset;
+                    break;
+                case SeekOrigin.End:
+                    pos = Length + offset;
+                    break;
+            }
+            int idx = 0;
+            while (idx+1 < _streamsStartPos.Count)
+            {
+                if (_streamsStartPos[idx + 1] > pos)
+                {
+                    break;
+                }
+                idx++;
+            }
+
+            _currentStreamIndex = idx;
+            _currentStream = _streams[_currentStreamIndex];
+            _currentStream.Seek(pos - _streamsStartPos[idx], SeekOrigin.Begin);
+            _postion = pos;
+            return _postion;
+            //throw new InvalidOperationException("Stream is not seekable.");
         }
 
         public override void SetLength(long value)
@@ -286,7 +323,7 @@ namespace CombinationStream
 
         public override bool CanSeek
         {
-            get { return false; }
+            get { return true; }
         }
 
         public override bool CanWrite
