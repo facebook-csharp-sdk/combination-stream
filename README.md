@@ -38,13 +38,13 @@ streams.Add(stream1);
 Stream combinationStream = new CombinationStream(streams);
 ```
 
-You can get the internal list of streams using `InteralStreams` property.
+You can get the internal list of streams using `InternalStreams` property.
 
 ```csharp
 IList<Stream> streams = combinationStream.InternalStreams;
 ```
 
-When calling `combinationStream.Dispose()` all streams will be disposed. If you want to have explict control over 
+When calling `combinationStream.Dispose()` all streams will be disposed. If you want to have explicit control over 
 disposing certain streams, you can make use of the overload contructor and pass the list of stream index that you 
 would like to auto dispose when calling `Dispose()` on the CombinationStream.
 
