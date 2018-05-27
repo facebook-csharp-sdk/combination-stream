@@ -27,6 +27,7 @@ namespace CombinationStream
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading;
 
     internal class CombinationStream : Stream
@@ -36,7 +37,7 @@ namespace CombinationStream
         private int _currentStreamIndex;
         private Stream _currentStream;
         private long _length = -1;
-        private long _postion;
+        private long _position;
 
         public CombinationStream(IList<Stream> streams)
             : this(streams, null)
@@ -64,7 +65,65 @@ namespace CombinationStream
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new InvalidOperationException("Stream is not seekable.");
+            long _streamOffset = offset;
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    if (offset >= _streams.Sum(x => x.Length))
+                        throw new ArgumentException("The offset is out of length of the stream.", "offset");
+
+                    for (int i = 0; i < _streams.Count; i++)
+                    {
+                        if (_streamOffset < _streams[i].Length)
+                        {
+                            _currentStream = _streams[i];
+                            _currentStream.Seek(_streamOffset, SeekOrigin.Begin);
+                            _position = offset;
+                            break;
+                        }
+                        else
+                            _streamOffset -= _streams[i].Length;
+                    }
+                    break;
+                case SeekOrigin.Current:
+                    if (_position + offset >= _streams.Sum(x => x.Length))
+                        throw new ArgumentException("The offset is out of length of the stream.", "offset");
+
+                    _streamOffset += _position;
+
+                    for (int i = 0; i < _streams.Count; i++)
+                    {
+                        if (_streamOffset < _streams[i].Length)
+                        {
+                            _currentStream = _streams[i];
+                            _currentStream.Seek(_streamOffset, SeekOrigin.Begin);
+                            _position = _position + offset;
+                            break;
+                        }
+                        else
+                            _streamOffset -= _streams[i].Length;
+                    }
+                    break;
+                case SeekOrigin.End:
+                    if (offset >= _streams.Sum(x => x.Length))
+                        throw new ArgumentException("The offset is out of length of the stream.", "offset");
+
+                    for (int i = _streams.Count - 1; i >= 0; i--)
+                    {
+                        if (_streamOffset < _streams[i].Length)
+                        {
+                            _currentStream = _streams[i];
+                            _currentStream.Seek(_streamOffset, SeekOrigin.End);
+                            _position = _streams.Sum(x => x.Length) - offset - 1;
+                            break;
+                        }
+                        else
+                            _streamOffset -= _streams[i].Length;
+                    }
+                    break;
+            }
+
+            return _position;
         }
 
         public override void SetLength(long value)
@@ -82,7 +141,7 @@ namespace CombinationStream
                 int bytesRead = _currentStream.Read(buffer, buffPostion, count);
                 result += bytesRead;
                 buffPostion += bytesRead;
-                _postion += bytesRead;
+                _position += bytesRead;
 
                 if (bytesRead <= count)
                     count -= bytesRead;
@@ -111,7 +170,7 @@ namespace CombinationStream
                 int bytesRead = await _currentStream.ReadAsync(buffer, buffPostion, count, cancellationToken);
                 result += bytesRead;
                 buffPostion += bytesRead;
-                _postion += bytesRead;
+                _position += bytesRead;
 
                 if (bytesRead <= count)
                     count -= bytesRead;
@@ -149,7 +208,7 @@ namespace CombinationStream
                                  int bytesRead = _currentStream.EndRead(readresult);
                                  asyncResult.BytesRead += bytesRead;
                                  buffPostion += bytesRead;
-                                 _postion += bytesRead;
+                                 _position += bytesRead;
 
                                  if (bytesRead <= count)
                                      count -= bytesRead;
@@ -255,7 +314,7 @@ namespace CombinationStream
             private readonly ManualResetEvent _manualResetEvent;
             public int BytesRead;
         }
-
+		
 #endif
 
         public override void Write(byte[] buffer, int offset, int count)
@@ -286,7 +345,7 @@ namespace CombinationStream
 
         public override bool CanSeek
         {
-            get { return false; }
+            get { return _streams.All(x => x.CanSeek); }
         }
 
         public override bool CanWrite
@@ -311,8 +370,12 @@ namespace CombinationStream
 
         public override long Position
         {
-            get { return _postion; }
-            set { throw new NotImplementedException(); }
+            get { return _position; }
+            set
+            {
+                if (value < 0) throw new ArgumentOutOfRangeException("value", "Positon can not be negative.");
+                Seek(value, SeekOrigin.Begin);
+            }
         }
     }
 }
